@@ -19,10 +19,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
 
-/**
- * ruse.pro: uygulama her acildiginda arka planda Fabric 1.21.4'u, Fabric API'yi ve ruse.pro modunu (GitHub'dan, her seferinde guncel)
- * kurar ve "ruse.pro" profilini hazirlar.
- */
 public final class RuseSetup {
     private static final String TAG = "ruse.pro";
     private static final String MC = "1.21.4";
@@ -38,7 +34,7 @@ public final class RuseSetup {
             @Override public void run() {
                 String msg;
                 try {
-                    boolean newProfile = run();
+                    boolean newProfile = setup();
                     msg = newProfile
                             ? "ruse.pro kuruldu! Launcher'i kapatip tekrar ac, sonra OYNA."
                             : "ruse.pro guncel.";
@@ -54,12 +50,11 @@ public final class RuseSetup {
         }, "ruse-setup").start();
     }
 
-    private static boolean run() throws Exception {
+    private static boolean setup() throws Exception {
         File versions = new File(Tools.DIR_HOME_VERSION);
         File mods = new File(Tools.DIR_GAME_NEW, "mods");
         mods.mkdirs();
 
-        // 1) vanilla 1.21.4 json (Fabric profili bunu ister)
         File vj = new File(versions, MC + "/" + MC + ".json");
         if (!vj.exists()) {
             JSONObject manifest = new JSONObject(getString("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"));
@@ -72,7 +67,6 @@ public final class RuseSetup {
             writeFile(vj, getBytes(url));
         }
 
-        // 2) Fabric loader profili
         JSONArray loaders = new JSONArray(getString("https://meta.fabricmc.net/v2/versions/loader/" + MC));
         String loaderVer = null;
         for (int i = 0; i < loaders.length() && loaderVer == null; i++) {
@@ -86,7 +80,6 @@ public final class RuseSetup {
             writeFile(fj, getBytes("https://meta.fabricmc.net/v2/versions/loader/" + MC + "/" + loaderVer + "/profile/json"));
         }
 
-        // 3) Fabric API
         boolean hasApi = false;
         File[] existing = mods.listFiles();
         if (existing != null) for (File f : existing) if (f.getName().toLowerCase().startsWith("fabric-api")) hasApi = true;
@@ -99,7 +92,6 @@ public final class RuseSetup {
             writeFile(new File(mods, pick.getString("filename")), getBytes(pick.getString("url")));
         }
 
-        // 4) ruse.pro modu: her acilista GitHub'dan guncelle (eskisi kalir, internet yoksa onu kullanir)
         File jar = new File(mods, "ruse-pro.jar");
         try {
             byte[] b = getBytes(MOD_URL + "?t=" + System.currentTimeMillis());
@@ -110,7 +102,6 @@ public final class RuseSetup {
             Log.w(TAG, "mod guncellenemedi, eski surum kullaniliyor", e);
         }
 
-        // 5) "ruse.pro" profili
         synchronized (RuseSetup.class) {
             LauncherProfiles.load();
             String key = null;
@@ -133,7 +124,6 @@ public final class RuseSetup {
         }
     }
 
-    // ---- yardimcilar ----
     private static byte[] getBytes(String u) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
         c.setConnectTimeout(15000);
