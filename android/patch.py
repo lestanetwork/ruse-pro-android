@@ -8,14 +8,14 @@ def resize(src, dst, px):
         exe = 'magick' if shutil.which('magick') else 'convert'
         subprocess.check_call([exe, src, '-resize', f'{px}x{px}', dst])
     else:
-        from PIL import Image  # pip install pillow
+        from PIL import Image
         Image.open(src).convert('RGBA').resize((px, px), Image.LANCZOS).save(dst)
 
 
 pj, ad = sys.argv[1], sys.argv[2]
 main = os.path.join(pj, 'app_pojavlauncher/src/main')
 
-# 1) uygulama kimligi (resmi Pojav ile yan yana kurulabilsin) + provider/authority metinleri
+# 1) uygulama kimligi
 gp = os.path.join(pj, 'app_pojavlauncher/build.gradle')
 s = open(gp, encoding='utf-8').read()
 s = s.replace('applicationId "net.kdt.pojavlaunch"', 'applicationId "pro.ruse.mobile"')
@@ -33,24 +33,32 @@ for f in glob.glob(os.path.join(main, 'res/values*/strings.xml')):
     t = re.sub(r'(<string name="app_short_name"[^>]*>)[^<]*(</string>)', r'\1ruse.pro\2', t)
     open(f, 'w', encoding='utf-8').write(t)
 
-# 3) ikon
+# 3) ikon: SADECE ic_launcher ve ic_launcher_round dosyalarina dokun, baskasini silme
 logo = os.path.join(ad, 'logo.png')
 sizes = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 for d in glob.glob(os.path.join(main, 'res/mipmap-*')):
     base = os.path.basename(d)
-    for f in glob.glob(os.path.join(d, 'ic_launcher*')):
-        os.remove(f)
+    for name in ('ic_launcher', 'ic_launcher_round'):
+        for ext in ('png', 'webp', 'jpg', 'xml'):
+            p = os.path.join(d, name + '.' + ext)
+            if os.path.exists(p):
+                os.remove(p)
     for dens, px in sizes.items():
         if base == 'mipmap-' + dens:
             for name in ('ic_launcher.png', 'ic_launcher_round.png'):
                 resize(logo, os.path.join(d, name), px)
-# densite klasoru olmayan durumlar icin yedek
 fb = os.path.join(main, 'res/mipmap-xxxhdpi')
 os.makedirs(fb, exist_ok=True)
 for name in ('ic_launcher.png', 'ic_launcher_round.png'):
     p = os.path.join(fb, name)
     if not os.path.exists(p):
         resize(logo, p, 192)
+# varsayilan mipmap bossa (anydpi silindiyse) ana klasore de koy
+for name in ('ic_launcher.png', 'ic_launcher_round.png'):
+    dd = os.path.join(main, 'res/mipmap-mdpi')
+    os.makedirs(dd, exist_ok=True)
+    if not os.path.exists(os.path.join(dd, name)):
+        resize(logo, os.path.join(dd, name), 48)
 
 # 4) kurulum sinifi + acilis kancasi
 dst = os.path.join(main, 'java/net/kdt/pojavlaunch')
