@@ -24,35 +24,21 @@ jobs:
           cd pojav/app_pojavlauncher/libs
           curl -fL -O https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar
 
-      - name: JRE 8
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: pojav/app_pojavlauncher/src/main/assets/components/jre
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre8
-          name: jre8-pojav
-
-      - name: JRE 17
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: pojav/app_pojavlauncher/src/main/assets/components/jre-new
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre17-21
-          name: jre17-pojav
-
-      - name: JRE 21
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: pojav/app_pojavlauncher/src/main/assets/components/jre-21
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre17-21
-          name: jre21-pojav
+      - name: JRE dosyalarini resmi Pojav APK'sindan al
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir dl && cd dl
+          gh release download -R PojavLauncherTeam/PojavLauncher --pattern '*.apk'
+          ls -la
+          APK=$(ls -S *.apk | head -1)
+          echo "Kullanilan APK: $APK"
+          mkdir x && cd x
+          unzip -q ../"$APK" 'assets/components/*'
+          ls assets/components
+          mkdir -p ../../pojav/app_pojavlauncher/src/main/assets/components
+          cp -r assets/components/* ../../pojav/app_pojavlauncher/src/main/assets/components/
+          ls ../../pojav/app_pojavlauncher/src/main/assets/components
 
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.11" }
